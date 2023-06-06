@@ -1,0 +1,45 @@
+.title {
+    color: #F8F9FA;  /* Light text color */
+    text-shadow: 2px 2px 4px #000000;  /* text shadow */
+    font-family: 'Arial', sans-serif;  /* font family */
+    text-transform: uppercase;  /* uppercase text */
+    letter-spacing: 1px;  /* space between letters */
+    font-weight: bold;  /* bold text */
+}
+
+/* Adjust for dcc.Dropdown */
+.Select-control,
+.Select--multi,
+.Select-value {
+    color: white;
+    background-color: white;
+}
+
+.VirtualizedSelectOption {
+    color: #0c5460 !important; /* Change this to your desired color */
+}
+
+.Select-value-label,
+.Select-option {
+    color: #000 !important;  /* Change this to the color you want */
+}
+
+.VirtualizedSelectFocusedOption {
+    background-color: #e5e5e5 !important;  /* Change this to the light color you want for the focused option */
+}
+
+.Select-multi-value-wrapper {
+    background-color: white !important;
+}
+
+.DateInput {
+    width: 100% !important;
+}
+
+.DateRangePicker_picker {
+    width: auto !important;
+}
+
+.dash-bootstrap .nav-link {
+    margin: 0 10px;
+}
