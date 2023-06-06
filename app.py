@@ -12,16 +12,18 @@ from dash import dash_table
 from dash.dash_table.Format import Group
 from functions import *
 
-
 # Initialize Dash app with Bootstrap
-app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY]) 
+app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+
+# Expose the server for WSGI
+server = app.server
 
 # Define Dash app layout
 app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
-            html.H1("5G NR KPI Dashboard", 
-                     className="text-center my-4 title"),  # add a new class 'title'
+            html.H1("5G NR KPI Dashboard",
+                     className="text-center my-4 title"),
         ], width=12),
     ]),
     dbc.Row([
@@ -98,7 +100,6 @@ app.layout = dbc.Container([
                             dbc.Tab(label='Box Plot', tab_id='tab-box'),
                             dbc.Tab(label='Histogram', tab_id='tab-hist'),
                         ]),
-
                     className='card-header'
                 ),
                 dbc.CardBody([
@@ -130,6 +131,20 @@ app.layout = dbc.Container([
     Input('tabs', 'active_tab'),  # change 'value' to 'active_tab'
     Input('resample_dropdown', 'value')])
 def update_graph(cell_id, pis, start_date, end_date, tab, resample_freq):
+    """
+    Callback function to update the graph based on the selected options.
+
+    Args:
+        cell_id (str): The selected cell ID.
+        pis (list): The selected KPIs.
+        start_date (str): The start date of the selected time range.
+        end_date (str): The end date of the selected time range.
+        tab (str): The active tab.
+        resample_freq (str): The selected date resampling frequency.
+
+    Returns:
+        go.Figure: The updated graph figure.
+    """
     if tab == 'tab-line':
         return update_line_chart(cell_id, pis, (start_date, end_date), resample_freq)
     elif tab == 'tab-bar':
@@ -143,6 +158,7 @@ def update_graph(cell_id, pis, start_date, end_date, tab, resample_freq):
     elif tab == 'tab-hist':
         return update_histogram(cell_id, pis, (start_date, end_date), resample_freq)
 
+
 @app.callback(
     Output('tabs-content', 'children'),
     Input('tabs', 'active_tab'),  # change 'value' to 'active_tab'
@@ -152,6 +168,20 @@ def update_graph(cell_id, pis, start_date, end_date, tab, resample_freq):
     Input('date_picker', 'end_date'),
     Input('resample_dropdown', 'value'))
 def render_tab_content(tab, selected_cells, selected_pis, start_date, end_date, resample_freq):
+    """
+    Callback function to render the content of the selected tab.
+
+    Args:
+        tab (str): The active tab.
+        selected_cells (str or list): The selected cell(s).
+        selected_pis (str or list): The selected KPI(s).
+        start_date (str): The start date of the selected time range.
+        end_date (str): The end date of the selected time range.
+        resample_freq (str): The selected date resampling frequency.
+
+    Returns:
+        list: The rendered content of the selected tab.
+    """
     # Convert date strings to datetime objects
     start_date = pd.to_datetime(start_date).replace(hour=0, minute=0)
     end_date = pd.to_datetime(end_date).replace(hour=23, minute=59)
@@ -171,8 +201,7 @@ def render_tab_content(tab, selected_cells, selected_pis, start_date, end_date, 
             content.append(html.Hr())
         return content
 
-    
-# Callback for updating the summary table
+
 @app.callback(
     Output('summary-table-container', 'children'),
     [Input('cell_dropdown', 'value'),
@@ -181,6 +210,19 @@ def render_tab_content(tab, selected_cells, selected_pis, start_date, end_date, 
     Input('date_picker', 'end_date'),
     Input('resample_dropdown', 'value')])
 def update_summary_tables(selected_cells, selected_pis, start_date, end_date, resample_freq):
+    """
+    Callback function to update the summary tables based on the selected options.
+
+    Args:
+        selected_cells (str or list): The selected cell(s).
+        selected_pis (str or list): The selected KPI(s).
+        start_date (str): The start date of the selected time range.
+        end_date (str): The end date of the selected time range.
+        resample_freq (str): The selected date resampling frequency.
+
+    Returns:
+        list: The rendered summary tables.
+    """
     # Ensure selected_pis and selected_cells are lists
     if not isinstance(selected_pis, list):
         selected_pis = [selected_pis]
@@ -200,7 +242,6 @@ def update_summary_tables(selected_cells, selected_pis, start_date, end_date, re
             # Resample filtered data before generating the summary
             filtered_data_resampled = filtered_data.resample(resample_freq).mean()
 
-
             summary = filtered_data_resampled['value'].describe().round(2)
             summary_table = dash_table.DataTable(
                 id=f'summary-table-{pi}-{cell}',
@@ -216,5 +257,5 @@ def update_summary_tables(selected_cells, selected_pis, start_date, end_date, re
 
     return table_list
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+# if __name__ == '__main__':
+#     app.run_server(debug=False)
