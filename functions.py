@@ -13,6 +13,16 @@ from dash.dash_table.Format import Group
 import os
 
 def load_data(filename):
+    """
+    Load data from a CSV file and convert the 'date_time' column to datetime.
+
+    Args:
+        filename (str): Name of the CSV file.
+
+    Returns:
+        pd.DataFrame: Loaded data.
+
+    """
     # Get the directory of this script
     script_dir = os.path.dirname(os.path.realpath(__file__))
     # Construct full file path
@@ -35,8 +45,17 @@ max_date = data['date_time'].max()
 # Generate statistical summary
 summary = data.describe(include=[np.number]).transpose().round(2)
 
-# Function to convert summary DataFrame to a list of dictionaries for DataTable
 def df_to_table(df):
+    """
+    Convert a DataFrame to a list of dictionaries for DataTable.
+
+    Args:
+        df (pd.DataFrame): Input DataFrame.
+
+    Returns:
+        list: List of dictionaries representing the DataFrame for DataTable.
+
+    """
     return [{column: row[i] for i, column in enumerate(df.columns)} for row in df.values]
 
 bright_colors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
@@ -44,7 +63,19 @@ bright_colors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4
 line_colors = bright_colors * (len(pis) // len(bright_colors)) + bright_colors[:len(pis) % len(bright_colors)]
 
 def resample_data(selected_cell, selected_pis, date_range, frequency):
-    """Resample data for selected cell and PIs over specified date range."""
+    """
+    Resample data for selected cell and PIs over the specified date range.
+
+    Args:
+        selected_cell (str): Selected cell ID.
+        selected_pis (str or list): Selected Performance Indicators.
+        date_range (tuple): Date range in the format (start_date, end_date).
+        frequency (str): Resampling frequency.
+
+    Returns:
+        pd.DataFrame: Resampled data.
+
+    """
     start_date, end_date = date_range
     # Ensure selected_pis is a list
     if not isinstance(selected_pis, list):
@@ -61,13 +92,23 @@ def resample_data(selected_cell, selected_pis, date_range, frequency):
     # Set 'date_time' as the index
     resampled_data.set_index('date_time', inplace=True)
     # Group by 'pi' and resample
-    resampled_data = resampled_data.groupby('pi').resample(frequency).mean(numeric_only=True)
+    resampled_data = resampled_data.groupby('pi').resample(frequency).mean()
     # Reset the index
     resampled_data.reset_index(inplace=True)
     return resampled_data
 
-# Function to generate date marks for range slider
 def get_date_marks(start_date, end_date):
+    """
+    Generate date marks for the range slider.
+
+    Args:
+        start_date (datetime): Start date of the range.
+        end_date (datetime): End date of the range.
+
+    Returns:
+        dict: Dictionary containing the date marks for the range slider.
+
+    """
     dates = pd.date_range(start_date, end_date, freq='MS')
     date_marks = {int((date - start_date).days): str(date.date()) for date in dates}
     date_marks[(end_date - start_date).days] = str(end_date.date())
@@ -76,7 +117,19 @@ def get_date_marks(start_date, end_date):
 
 # Functions for the different chart types
 def update_line_chart(selected_cell, selected_pis, date_range, frequency):
-    """Updates the line chart"""
+    """
+    Updates the line chart.
+
+    Args:
+        selected_cell (str): Selected cell ID.
+        selected_pis (str or list): Selected Performance Indicators.
+        date_range (tuple): Date range in the format (start_date, end_date).
+        frequency (str): Resampling frequency.
+
+    Returns:
+        go.Figure: Updated line chart figure.
+
+    """
     resampled_data = resample_data(selected_cell, selected_pis, date_range, frequency)
     resampled_data = resampled_data.sort_values(by=['date_time'])
     fig = go.Figure()
@@ -97,32 +150,54 @@ def update_line_chart(selected_cell, selected_pis, date_range, frequency):
     return fig
 
 def update_bar_chart(selected_cell, selected_pis, date_range, frequency):
-    """Updates the bar chart"""
+    """
+    Updates the bar chart.
+
+    Args:
+        selected_cell (str): Selected cell ID.
+        selected_pis (str or list): Selected Performance Indicators.
+        date_range (tuple): Date range in the format (start_date, end_date).
+        frequency (str): Resampling frequency.
+
+    Returns:
+        go.Figure: Updated bar chart figure.
+
+    """
     resampled_data = resample_data(selected_cell, selected_pis, date_range, frequency)
     fig = go.Figure()
 
     for i, pi in enumerate(selected_pis):
         pi_data = resampled_data[resampled_data['pi'] == pi]
         pi_data = pi_data.dropna()  # make sure to drop NaN values
-        fig.add_trace(go.Bar(x=pi_data['date_time'].dt.strftime('%Y-%m-%d %H'), y=pi_data['value'], 
+        fig.add_trace(go.Bar(x=pi_data['date_time'].dt.strftime('%Y-%m-%d %H'), y=pi_data['value'],
                              name=pi, marker=dict(color=line_colors[i % len(line_colors)]),
                              text=["{:.2f}".format(val) for val in pi_data['value']],
                              textposition='outside',
                              textfont=dict(color="#FFFFFF", size=10)))
-    
+
     fig.update_layout(
-        title=f'Time Series Bar Chart for {selected_cell}', 
-        xaxis_title='Time', 
+        title=f'Time Series Bar Chart for {selected_cell}',
+        xaxis_title='Time',
         yaxis_title='Value',
         template='plotly_dark',
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     return fig
 
-
-
 def update_scatter_chart(selected_cell, selected_pis, date_range, frequency):
-    """Updates the scatter chart"""
+    """
+    Updates the scatter chart.
+
+    Args:
+        selected_cell (str): Selected cell ID.
+        selected_pis (str or list): Selected Performance Indicators.
+        date_range (tuple): Date range in the format (start_date, end_date).
+        frequency (str): Resampling frequency.
+
+    Returns:
+        go.Figure: Updated scatter chart figure.
+
+    """
     resampled_data = resample_data(selected_cell, selected_pis, date_range, frequency)
     resampled_data = resampled_data.dropna()
     fig = go.Figure()
@@ -138,8 +213,8 @@ def update_scatter_chart(selected_cell, selected_pis, date_range, frequency):
     size = (pi_data_y['value'] - pi_data_y['value'].min()) / (pi_data_y['value'].max() - pi_data_y['value'].min()) * 20
 
     fig.add_trace(go.Scatter(
-        x=pi_data_x['value'], 
-        y=pi_data_y['value'], 
+        x=pi_data_x['value'],
+        y=pi_data_y['value'],
         mode='markers',
         name=f'{selected_pis[0]} vs {selected_pis[1]}',
         marker=dict(
@@ -151,8 +226,8 @@ def update_scatter_chart(selected_cell, selected_pis, date_range, frequency):
     ))
 
     fig.update_layout(
-        title=f'Scatter Plot for {selected_cell} between {selected_pis[0]} and {selected_pis[1]}', 
-        xaxis_title=selected_pis[0], 
+        title=f'Scatter Plot for {selected_cell} between {selected_pis[0]} and {selected_pis[1]}',
+        xaxis_title=selected_pis[0],
         yaxis_title=selected_pis[1],
         template='plotly_dark',
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
@@ -160,7 +235,19 @@ def update_scatter_chart(selected_cell, selected_pis, date_range, frequency):
     return fig
 
 def update_heatmap(selected_cell, selected_pis, date_range, frequency):
-    """Updates the heatmap"""
+    """
+    Updates the heatmap.
+
+    Args:
+        selected_cell (str): Selected cell ID.
+        selected_pis (str or list): Selected Performance Indicators.
+        date_range (tuple): Date range in the format (start_date, end_date).
+        frequency (str): Resampling frequency.
+
+    Returns:
+        go.Figure: Updated heatmap figure.
+
+    """
     resampled_data = resample_data(selected_cell, selected_pis, date_range, frequency)
     resampled_data = resampled_data.dropna()
 
@@ -186,7 +273,7 @@ def update_heatmap(selected_cell, selected_pis, date_range, frequency):
         fig.add_trace(heatmap, i+1, 1)
 
         # Adding y-axes title with vertical alignment
-        fig.update_yaxes(title_text=pi, row=i+1, col=1, title_standoff=0)
+        fig.update_yaxes(title_text=pi, row=i+1, col=1)
 
     fig.update_layout(
         title=f'Heatmap for {selected_cell}',
@@ -199,7 +286,19 @@ def update_heatmap(selected_cell, selected_pis, date_range, frequency):
     return fig
 
 def update_box_plot(selected_cell, selected_pis, date_range, frequency):
-    """Updates the box plot"""
+    """
+    Updates the box plot.
+
+    Args:
+        selected_cell (str): Selected cell ID.
+        selected_pis (str or list): Selected Performance Indicators.
+        date_range (tuple): Date range in the format (start_date, end_date).
+        frequency (str): Resampling frequency.
+
+    Returns:
+        go.Figure: Updated box plot figure.
+
+    """
     resampled_data = resample_data(selected_cell, selected_pis, date_range, frequency)
     resampled_data = resampled_data.dropna()
     fig = go.Figure()
@@ -215,28 +314,39 @@ def update_box_plot(selected_cell, selected_pis, date_range, frequency):
     )
     return fig
 
-
 def update_histogram(selected_cell, selected_pis, date_range, frequency):
-    """Updates the histogram chart"""
+    """
+    Updates the histogram chart.
+
+    Args:
+        selected_cell (str): Selected cell ID.
+        selected_pis (str or list): Selected Performance Indicators.
+        date_range (tuple): Date range in the format (start_date, end_date).
+        frequency (str): Resampling frequency.
+
+    Returns:
+        go.Figure: Updated histogram chart figure.
+
+    """
     resampled_data = resample_data(selected_cell, selected_pis, date_range, frequency)
     resampled_data = resampled_data.dropna()
 
     # Create subplots, using 'domain' type for x-axes
-    fig = make_subplots(rows=1, cols=len(selected_pis), 
+    fig = make_subplots(rows=1, cols=len(selected_pis),
                         shared_yaxes=True)
 
     for i, pi in enumerate(selected_pis):
         pi_data = resampled_data[resampled_data['pi'] == pi]
-        fig.add_trace(go.Histogram(x=pi_data['value'], 
-                                   name=pi, 
-                                   nbinsx=20, 
-                                   marker_color=line_colors[i % len(line_colors)]), 
+        fig.add_trace(go.Histogram(x=pi_data['value'],
+                                   name=pi,
+                                   nbinsx=20,
+                                   marker_color=line_colors[i % len(line_colors)]),
                       row=1, col=i+1)
         fig.update_xaxes(title_text='Value', row=1, col=i+1)
 
-    fig.update_layout(title=f'{selected_cell} Histogram for each PI', 
-                      yaxis_title='Count', 
-                      template='plotly_dark', 
+    fig.update_layout(title=f'{selected_cell} Histogram for each PI',
+                      yaxis_title='Count',
+                      template='plotly_dark',
                       legend=dict(
                           orientation="h",
                           yanchor="bottom",
